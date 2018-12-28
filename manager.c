@@ -55,13 +55,9 @@ int main() {
 
     if (DEBUG) printf("Mgr entered\n");
 
-
-//    // todo wszsytko
-
     // exiting building
     int written_exited_players = 0;
     for (int i = 0; i < players; i++) {
-        if (DEBUG) cout_semaphores(mutex, enter_counter, enter_wait, manager);
         if (sem_wait(manager)) syserr("sem_wait");
         int exiting_id = strg->exiting_buffer[written_exited_players++];
         fprintf(f_out, "Player %d left after %d game(s).\n",
@@ -70,13 +66,11 @@ int main() {
 
     if (DEBUG) printf("Mgr exitted\n");
 
-
     // cleanup
     fclose(f_in);
     fclose(f_out);
 
     close_semaphores(mutex, enter_counter, enter_wait, manager);
-
     free_storage(strg);
 
     if (DEBUG) printf("Manager ded\n");

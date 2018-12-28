@@ -74,7 +74,7 @@ Storage *initialize_storage() {
 
 
 void free_storage(Storage *strg) {
-    printf("unlinking %p\n", strg);
+    printf("Freeing storage\n");
     close(strg->fd_memory);
     shm_unlink(SHM_NAME);
 

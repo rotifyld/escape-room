@@ -51,25 +51,22 @@ int main(int argc, char **argv) {
     if (DEBUG) printf("Player %d tries to enter\n", id);
 
     // entering building
-    if (DEBUG) cout_semaphores(mutex, enter_counter, enter_wait, manager);
     if (sem_post(enter_counter)) syserr("sem_post");
-    if (DEBUG) cout_semaphores(mutex, enter_counter, enter_wait, manager);
     if (sem_wait(enter_wait)) syserr("sem_wait");
-    if (DEBUG) cout_semaphores(mutex, enter_counter, enter_wait, manager);
 
     if (DEBUG) printf("Player %d entered\n", id);
 
     // todo wszsytko
 
+
+
+    // todo end wszsytko
+
     // exiting building
-    if (DEBUG) cout_semaphores(mutex, enter_counter, enter_wait, manager);
     if (sem_wait(mutex)) syserr("sem_wait");
-    if (DEBUG) cout_semaphores(mutex, enter_counter, enter_wait, manager);
     strg->exiting_buffer[strg->exited++] = id;
     if (sem_post(mutex)) syserr("sem_post");
-    if (DEBUG) cout_semaphores(mutex, enter_counter, enter_wait, manager);
     if (sem_post(manager)) syserr("sem_post");
-    if (DEBUG) cout_semaphores(mutex, enter_counter, enter_wait, manager);
 
     if (DEBUG) printf("Player %d exited\n", id);
 

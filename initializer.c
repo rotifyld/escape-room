@@ -15,7 +15,7 @@
 #include "err.h"
 #include "shared_storage.h"
 
-#define NO_PLAYERS 2
+#define NO_PLAYERS 3
 
 int main() {
     int i;
