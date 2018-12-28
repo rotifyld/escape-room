@@ -20,7 +20,6 @@
 #include "shared_storage.h"
 
 
-
 int main(int argc, char **argv) {
 
     int id;
@@ -29,6 +28,10 @@ int main(int argc, char **argv) {
     char filepath_in[15]; // 15 == strlen("player-((MAX_ID)).in")
     char filepath_out[15]; // 15 == strlen("player-((MAX_ID)).out")
     Storage *strg;
+    sem_t *mutex = NULL;
+    sem_t *enter_counter = NULL;
+    sem_t *enter_wait = NULL;
+    sem_t *manager = NULL;
 
     assert(argc == 2 && "Invalid number of program arguments. (Expected: 1)");
     id = atoi(argv[1]);
@@ -43,26 +46,38 @@ int main(int argc, char **argv) {
     if (f_out == (FILE *) -1) syserr("Error opening file");
 
     strg = initialize_storage();
+    open_semaphores(&mutex, &enter_counter, &enter_wait, &manager);
 
+    if (DEBUG) printf("Player %d tries to enter\n", id);
 
-    int value = -1;
-    sem_getvalue(strg->mutex, &value);
-    printf("before = %d\n", value);
-    sem_post(strg->mutex);
-    sem_getvalue(strg->mutex, &value);
-    printf("after = %d\n", value);
+    // entering building
+    if (DEBUG) cout_semaphores(mutex, enter_counter, enter_wait, manager);
+    if (sem_post(enter_counter)) syserr("sem_post");
+    if (DEBUG) cout_semaphores(mutex, enter_counter, enter_wait, manager);
+    if (sem_wait(enter_wait)) syserr("sem_wait");
+    if (DEBUG) cout_semaphores(mutex, enter_counter, enter_wait, manager);
 
+    if (DEBUG) printf("Player %d entered\n", id);
 
-//    if (id == 1) {
-//        if (sem_wait(&strg->mutex)) syserr("sem_wait");
-//    } else {
-//        if (sem_post(&strg->mutex)) syserr("sem_post");
-//    }
+    // todo wszsytko
 
+    // exiting building
+    if (DEBUG) cout_semaphores(mutex, enter_counter, enter_wait, manager);
+    if (sem_wait(mutex)) syserr("sem_wait");
+    if (DEBUG) cout_semaphores(mutex, enter_counter, enter_wait, manager);
+    strg->exiting_buffer[strg->exited++] = id;
+    if (sem_post(mutex)) syserr("sem_post");
+    if (DEBUG) cout_semaphores(mutex, enter_counter, enter_wait, manager);
+    if (sem_post(manager)) syserr("sem_post");
+    if (DEBUG) cout_semaphores(mutex, enter_counter, enter_wait, manager);
+
+    if (DEBUG) printf("Player %d exited\n", id);
 
     // cleanup
     fclose(f_in);
     fclose(f_out);
 
-    printf("Player %d ded\n", id);
+    close_semaphores(mutex, enter_counter, enter_wait, manager);
+
+    if (DEBUG) printf("Player %d ded\n", id);
 }

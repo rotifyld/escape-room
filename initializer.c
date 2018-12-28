@@ -10,6 +10,7 @@
 #include <string.h>
 #include <sys/stat.h>        /* For mode constants */
 #include <fcntl.h>           /* For O_* constants */
+#include <assert.h>
 
 #include "err.h"
 #include "shared_storage.h"
@@ -18,9 +19,19 @@
 
 int main() {
     int i;
+    FILE *manager_in;
     pid_t pid;
 
-    Storage * strg = initialize_storage();
+    clean_memory();
+
+    manager_in = fopen("manager.in", "w");
+    if (manager_in == (FILE *) -1) syserr("Error opening file");
+    fprintf(manager_in, "%d 4\n"
+                        "A 4\n"
+                        "B 6\n"
+                        "C 8\n"
+                        "A 10", NO_PLAYERS);
+    fclose(manager_in);
 
     for (i = 0; i < NO_PLAYERS + 1; ++i) {
 
@@ -50,7 +61,4 @@ int main() {
     }
 
     for (i = 0; i < NO_PLAYERS + 1; ++i) wait(0);
-
-    free_storage(strg);
-
 }
