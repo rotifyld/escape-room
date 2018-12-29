@@ -39,10 +39,13 @@ int main() {
 
     // get data
     fscanf(f_in, "%d %d\n", &players, &rooms);
+    for (int i = 0; i < rooms; ++i) {
+
+    }
 
     if (DEBUG) printf("Mgr tries to enter\n");
 
-//     entering building
+    // entering building
     for (int i = 0; i < players; ++i) {
         if (DEBUG) cout_semaphores(mutex, enter_counter, enter_wait, manager);
         if (sem_wait(enter_counter)) syserr("sem_wait");
@@ -59,12 +62,12 @@ int main() {
     int written_exited_players = 0;
     for (int i = 0; i < players; i++) {
         if (sem_wait(manager)) syserr("sem_wait");
-        int exiting_id = strg->exiting_buffer[written_exited_players++];
+        int exiting_id = strg->exited_list[written_exited_players++];
         fprintf(f_out, "Player %d left after %d game(s).\n",
-                exiting_id, strg->played_games[exiting_id]);
+                exiting_id, strg->no_of_games[exiting_id]);
     }
 
-    if (DEBUG) printf("Mgr exitted\n");
+    if (DEBUG) printf("Mgr exited\n");
 
     // cleanup
     fclose(f_in);

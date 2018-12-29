@@ -10,8 +10,7 @@
 #include <stdio.h>
 
 #include "err.h"
-
-//#include "concurrent_proprositions_list.h"
+#include "propositions_list.h"
 
 #define MAX_ID 1024
 #define MAX_ROOMS 1024
@@ -31,24 +30,37 @@ typedef struct Storage {
 
 //    struct concurrent_propositions_list *propositions;
 
+    // Rooms:
+
+    int max_capacity[MAX_ROOMS + 1];
+
+    int *avaliable_rooms[MAX_ROOMS + 1];
+
+    // Players: their preferences and state.
+
+    char favorite[MAX_ID + 1];
+
+    bool is_playing[MAX_ID + 1];
 
     /*
      * 0 - player doesn't have assigned room.
      * 1~1024 - room where the player is, or is about to be.
      * -1 - player can exit.
-     * Assignment from 0 to any other number is made by manager.
+//     * Assignment from 0 to any other number is made by manager.
      * Assignment to 0 is made by player at exiting a room.
      */
-    int player_room[MAX_ID];
+    int assigned_room[MAX_ID + 1];
 
-    int played_games[MAX_ID];
+    int no_of_games[MAX_ID + 1];
 
-    int exiting_buffer[MAX_ID];
+    // Manager: players that have exited.
 
-    int exited;
+    int exited_list[MAX_ID];
+    int no_exited;
+
+    // Cleanup.
 
     int fd_memory;
-
 
 } Storage;
 

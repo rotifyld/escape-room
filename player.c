@@ -11,14 +11,12 @@
 #include <assert.h>
 #include <errno.h>
 #include <limits.h>
-#include <stdlib.h>
 
 // todo syserr:
 // in file: %s at line %d", __FILE__, __LINE__)
 
 #include "err.h"
 #include "shared_storage.h"
-
 
 int main(int argc, char **argv) {
 
@@ -58,13 +56,15 @@ int main(int argc, char **argv) {
 
     // todo wszsytko
 
+//    char buffer[5 * MAX_ID];
+
 
 
     // todo end wszsytko
 
     // exiting building
     if (sem_wait(mutex)) syserr("sem_wait");
-    strg->exiting_buffer[strg->exited++] = id;
+    strg->exited_list[strg->no_exited++] = id;
     if (sem_post(mutex)) syserr("sem_post");
     if (sem_post(manager)) syserr("sem_post");
 
