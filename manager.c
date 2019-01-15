@@ -15,6 +15,36 @@
 #include "err.h"
 #include "shared_storage.h"
 
+void initialize_players(int no_players) {
+    pid_t pid;
+    char id[5];
+    char *args[] = {"./player", id, NULL};
+
+    for (int i = 1; i <= no_players; ++i) {
+        pid = fork();
+
+        if (pid == -1) {
+            syserr("fork");
+        } else if (pid == 0) {
+            sprintf(id, "%d", i);
+
+            execvp(args[0], args);
+            syserr("exec");
+        }
+    }
+}
+
+void get_room_data(FILE * f_in, Storage *strg, int rooms) {
+    char type;
+    int capacity;
+    for (int i = 1; i <= rooms; ++i) {
+        fscanf(f_in, "%c %d", &type, &capacity);
+        // todo dodaj do jakiegoś kontenera
+        fgetc(f_in); // '\n', albo EOF
+    }
+}
+
+
 int main() {
 
     int players;
@@ -37,11 +67,12 @@ int main() {
     strg = initialize_storage();
     open_semaphores(&mutex, &enter_counter, &enter_wait, &manager);
 
-    // get data
+    // get values of number of players and rooms
     fscanf(f_in, "%d %d\n", &players, &rooms);
-    for (int i = 0; i < rooms; ++i) {
 
-    }
+    initialize_players(players);
+
+    get_room_data(f_in, strg, rooms);
 
     if (DEBUG) printf("Mgr tries to enter\n");
 
@@ -74,6 +105,8 @@ int main() {
     fclose(f_out);
 
     close_semaphores(mutex, enter_counter, enter_wait, manager);
+
+    for (int i = 0; i < players + 1; ++i) wait(0);
     free_storage(strg);
 
     if (DEBUG) printf("Manager ded\n");

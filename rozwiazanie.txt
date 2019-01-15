@@ -1,0 +1,115 @@
+// N - ilość graczy
+// M - ilość pokoi
+
+
+struct proposition_t {
+    int owner_id;
+    int no_players;
+    int no_unavailable_players_by_id; // P(mutex) at setting
+    ?list?_t<char> required_players_by_type;
+};
+
+struct plist {
+    // TODO 
+}
+
+
+
+/* wypełniane wcześniej - czytanie nie wymaga synchronizacji */
+
+char[N] player_type;
+(?list?_t<int>)[M] players_by_type; // by type
+int[M] max_room_size; // 0 - the room does not exist
+
+/* wypełniane i zmieniane dynamicznie */
+
+bool[N] added_everything = {false, ..., false};
+int players_still_adding = N;
+
+// 1..N - pokoj do ktorego idzie gracz
+// 0    - ustawia gracz sam sobie tuż po wyjściu, oznacza, że jest dostępny do następnych gier
+int[N] going_to;
+
+// gry, od ktorych zależny jest gracz o danym id
+???_t<proposition_t>[N] id_dependent;
+// gry, od ktorych zależni są gracze o danym typie
+???_t<proposition_t>[M] type_dependent;
+
+
+
+void dodaj_do_plist() {
+    // TODO
+
+}
+
+
+inline bool nikt_mnie_nie_potrzebuje(int id) {
+    return id_dependent[id].empty() && type_dependent[player_type[id]].empty();
+}
+
+// wywoływane na początku i po wczytaniu kolejnej linii
+bool bede_mial_cos_do_dodania(int id) { // czy coś w ten deseń
+    if ((int c = getc()) == -1) {
+        return false;
+    } else {
+        putc(c);
+        return true;
+    }
+}
+
+process Player(int id) {
+
+    if (!bede_mial_cos_do_dodania()) {
+        added_everything[id] = true;
+        players_still_adding--;
+    }
+
+    while(true) {
+        P(mutex);
+            if (players_still_adding == 0 && nikt_mnie_nie_potrzebuje(id)) {
+                V(mutex);
+                break;
+            }
+
+            if (!added_everything[id]) {
+                if (ktos_na_plist) {
+                    chce_dodac_do_plist++;
+                    V(mutex);
+                    P(chce_dodac_do_plist); // dziedziczenie sekcji krytycznej
+                    chce_dodac_do_plist--;
+                }
+                ktos_na_plist = true;
+                V(mutex);
+                dodaj_do_plist(); // TODO
+                P(mutex);
+                if (!bede_mial_cos_do_dodania()) {
+                    added_everything[id] = true;
+                    players_still_adding--;
+                }
+                ktos_na_plist = false;
+                if (chce_dodac_do_plist) {
+                    V(chce_dodac_do_plist);
+                } else if (chce_sprawdzac_plist) {
+                    V(chce_sprawdzac_plist);
+                } else {
+                    V(mutex);
+                }
+            }
+
+            // sprawdzanie
+            P(mutex);
+            if (jest_cos_do_sprawdzenia()) { // TODO
+                // TODO
+                // V(mutex);
+            }
+
+            P(na_gre[id]); // todo przy budzeniu trzeba ustawić
+
+            idz_grac();
+            P(mutex);
+            zupdateuj_wszystko_ze_mna() // TODO
+            dokad[id] = 0;
+            V(mutex);
+
+    }
+}

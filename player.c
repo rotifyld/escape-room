@@ -46,6 +46,8 @@ int main(int argc, char **argv) {
     strg = initialize_storage();
     open_semaphores(&mutex, &enter_counter, &enter_wait, &manager);
 
+    // todo dodaj info o ulubionym pokoju przed wejściem wejściem
+
     if (DEBUG) printf("Player %d tries to enter\n", id);
 
     // entering building

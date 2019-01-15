@@ -14,6 +14,7 @@
 
 #define MAX_ID 1024
 #define MAX_ROOMS 1024
+#define NO_ROOM_TYPES 'Z' - 'A' + 1
 
 #define SHM_NAME                "/escape_room_shared_memory"
 #define MUTEX_NAME              "/escape_room_mutex"
@@ -32,9 +33,9 @@ typedef struct Storage {
 
     // Rooms:
 
-    int max_capacity[MAX_ROOMS + 1];
+    int max_capacity[NO_ROOM_TYPES];
 
-    int *avaliable_rooms[MAX_ROOMS + 1];
+    int *avaliable_rooms[NO_ROOM_TYPES];
 
     // Players: their preferences and state.
 
@@ -65,6 +66,22 @@ typedef struct Storage {
 } Storage;
 
 
+// todo sprawdzić czy to działa i użyć tego
+// Invoked by player to a storage initialized by manager
+Storage *get_storage() {
+    Storage *strg;
+    int fd_memory;
+
+    fd_memory = shm_open(SHM_NAME, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+    if (fd_memory == -1) syserr("Open shared memory");
+
+    strg = (Storage *) mmap(NULL, STORAGE_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd_memory, 0);
+    if (strg == MAP_FAILED) syserr("mmap");
+
+    return strg;
+}
+
+
 Storage *initialize_storage() {
     Storage *strg;
     int fd_memory;
@@ -76,7 +93,6 @@ Storage *initialize_storage() {
     if (fd_memory == -1) syserr("Truncate memory");
 
     strg = (Storage *) mmap(NULL, STORAGE_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd_memory, 0);
-
     if (strg == MAP_FAILED) syserr("mmap");
 
     strg->fd_memory = fd_memory;
