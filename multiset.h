@@ -13,14 +13,22 @@ typedef struct multiset {
     int contents[MULTISET_SIZE];
 } multiset;
 
-multiset *multiset_new() {
-    multiset *m = malloc(sizeof(multiset));
+void multiset_new(multiset * m) {
     memset(m->contents, 0, sizeof(m->contents));
-    return m;
 }
+
+//multiset *multiset_new() {
+//    multiset *m = malloc(sizeof(multiset));
+//    memset(m->contents, 0, sizeof(m->contents));
+//    return m;
+//}
 
 void multiset_delete(multiset *m) {
     free(m);
+}
+
+void multiset_init(multiset * m) {
+    memset(m->contents, 0, sizeof(m->contents));
 }
 
 void multiset_add(multiset *m, char c) {
@@ -52,6 +60,16 @@ int multiset_subset(multiset *m1, multiset *m2) {
         if (m1->contents[i] > m2->contents[i]) return 0;
     }
     return 1;
+}
+
+char multiset_draw(multiset * m) {
+    for (int i = 0; i < MULTISET_SIZE; i++) {
+        if (m->contents[i] > 0) {
+            m->contents[i]--;
+            return (char) (i + MULTISET_FIRST);
+        }
+    }
+    return 0;
 }
 
 #endif //ESCAPE_ROOM_MULTISET_H

@@ -15,12 +15,12 @@
 #include "err.h"
 #include "shared_storage.h"
 
-void initialize_players(int no_players) {
+void initialize_players(storage *strg) {
     pid_t pid;
     char id[5];
     char *args[] = {"./player", id, NULL};
 
-    for (int i = 1; i <= no_players; ++i) {
+    for (int i = 1; i <= strg->no_players; ++i) {
         pid = fork();
 
         if (pid == -1) {
@@ -34,12 +34,15 @@ void initialize_players(int no_players) {
     }
 }
 
-void get_room_data(FILE * f_in, Storage *strg, int rooms) {
+void get_room_data(FILE *f_in, storage *strg) {
     char type;
     int capacity;
-    for (int i = 1; i <= rooms; ++i) {
+    for (int i = 1; i <= strg->no_rooms; ++i) {
         fscanf(f_in, "%c %d", &type, &capacity);
-        // todo dodaj do jakiegoś kontenera
+        room_new(strg, type, capacity, i);
+        if (strg->max_capacity[TYPE_TO_INT(type)] < capacity) {
+            strg->max_capacity[TYPE_TO_INT(type)] = capacity;
+        }
         fgetc(f_in); // '\n', albo EOF
     }
 }
@@ -47,15 +50,9 @@ void get_room_data(FILE * f_in, Storage *strg, int rooms) {
 
 int main() {
 
-    int players;
-    int rooms;
     FILE *f_in;
     FILE *f_out;
-    Storage *strg;
-    sem_t *mutex = NULL;
-    sem_t *enter_counter = NULL;
-    sem_t *enter_wait = NULL;
-    sem_t *manager = NULL;
+    storage *strg;
 
     // open files to read/write
     f_in = fopen("manager.in", "r");
@@ -65,50 +62,40 @@ int main() {
     if (f_out == (FILE *) -1) syserr("Error opening file");
 
     strg = initialize_storage();
-    open_semaphores(&mutex, &enter_counter, &enter_wait, &manager);
 
     // get values of number of players and rooms
-    fscanf(f_in, "%d %d\n", &players, &rooms);
+    fscanf(f_in, "%d %d\n", &strg->no_players, &strg->no_rooms);
+    strg->still_adding_propositions = strg->no_players;
 
-    initialize_players(players);
+    initialize_players(strg);
 
-    get_room_data(f_in, strg, rooms);
+    get_room_data(f_in, strg);
 
-    if (DEBUG) printf("Mgr tries to enter\n");
+//    if (DEBUG) printf("Mgr tries to enter\n");
 
     // entering building
-    for (int i = 0; i < players; ++i) {
-        if (DEBUG) cout_semaphores(mutex, enter_counter, enter_wait, manager);
-        if (sem_wait(enter_counter)) syserr("sem_wait");
+    for (int i = 0; i < strg->no_players; ++i) {
+        if (sem_wait(&strg->enter_manager)) syserr("sem_wait");
     }
-    for (int i = 0; i < players; ++i) {
-        if (DEBUG) cout_semaphores(mutex, enter_counter, enter_wait, manager);
-        if (sem_post(enter_wait)) syserr("sem_post");
-        if (DEBUG) cout_semaphores(mutex, enter_counter, enter_wait, manager);
+    for (int i = 0; i < strg->no_players; ++i) {
+        if (sem_post(&strg->enter_player)) syserr("sem_post");
     }
 
-    if (DEBUG) printf("Mgr entered\n");
+    unlink_shm(strg);
 
-    // exiting building
-    int written_exited_players = 0;
-    for (int i = 0; i < players; i++) {
-        if (sem_wait(manager)) syserr("sem_wait");
-        int exiting_id = strg->exited_list[written_exited_players++];
-        fprintf(f_out, "Player %d left after %d game(s).\n",
-                exiting_id, strg->no_of_games[exiting_id]);
+    for (int i = 0; i < strg->no_players; ++i) {
+        wait(0);
+        fprintf(f_out, "Player %d left after %d game(s)\n",
+                strg->leaving_queue[i],
+                strg->no_of_games[strg->leaving_queue[i]]);
     }
-
-    if (DEBUG) printf("Mgr exited\n");
 
     // cleanup
     fclose(f_in);
     fclose(f_out);
 
-    close_semaphores(mutex, enter_counter, enter_wait, manager);
-
-    for (int i = 0; i < players + 1; ++i) wait(0);
     free_storage(strg);
 
-    if (DEBUG) printf("Manager ded\n");
+//    if (DEBUG) printf("Manager ded\n");
 
 }

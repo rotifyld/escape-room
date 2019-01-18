@@ -15,6 +15,39 @@
 #include "err.h"
 #include "bitset.h"
 #include "multiset.h"
+#include "rooms.h"
+
+int main() {
+
+}
+
+//int main() {
+//    rooms * r = rooms_new();
+//    rooms_add(r, 'A', 2, 1);
+//    printf("biggest is %d\n", rooms_biggest(r, 'A'));
+//    rooms_add(r, 'A', 3, 2);
+//    printf("biggest is %d\n", rooms_biggest(r, 'A'));
+//    rooms_add(r, 'A', 1, 3);
+//    printf("biggest is %d\n", rooms_biggest(r, 'A'));
+//    rooms_add(r, 'A', 4, 4);
+//    printf("biggest is %d\n", rooms_biggest(r, 'A'));
+//    rooms_add(r, 'A', 2, 6);
+//    rooms_add(r, 'A', 2, 7);
+//    rooms_print(r);
+//    printf("got id = %d, biggest is %d\n", rooms_draw(r, 'A', 1), rooms_biggest(r, 'A'));
+//    rooms_print(r);
+//    printf("got id = %d, biggest is %d\n", rooms_draw(r, 'A', 1), rooms_biggest(r, 'A'));
+//    rooms_print(r);
+//    printf("got id = %d, biggest is %d\n", rooms_draw(r, 'A', 1), rooms_biggest(r, 'A'));
+//    rooms_print(r);
+//    printf("got id = %d, biggest is %d\n", rooms_draw(r, 'A', 1), rooms_biggest(r, 'A'));
+//    rooms_print(r);
+//    printf("got id = %d, biggest is %d\n", rooms_draw(r, 'A', 1), rooms_biggest(r, 'A'));
+//    rooms_print(r);
+//    printf("got id = %d, biggest is %d\n", rooms_draw(r, 'A', 1), rooms_biggest(r, 'A'));
+//    rooms_print(r);
+//    printf("biggest is %d\n", rooms_biggest(r, 'A'));
+//}
 
 //int main() {
 //

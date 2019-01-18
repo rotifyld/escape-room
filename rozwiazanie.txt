@@ -10,7 +10,7 @@ struct proposition_t {
 };
 
 struct plist {
-    // TODO 
+    // TODO
 }
 
 
@@ -63,7 +63,7 @@ process Player(int id) {
         added_everything[id] = true;
         players_still_adding--;
     }
-
+||
     while(true) {
         P(mutex);
             if (players_still_adding == 0 && nikt_mnie_nie_potrzebuje(id)) {

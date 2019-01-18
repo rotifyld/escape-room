@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(escape_room C)
 
 set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_FLAGS "-g -Wall")
+set(CMAKE_C_FLAGS "-g -O3 -Wall -Wextra")
 
 # http://stackoverflow.com/questions/10555706/
 macro(add_executable _name)
@@ -16,14 +16,8 @@ endmacro()
 
 add_library(err err.c)
 
-add_executable(manager manager.c shared_storage.h propositions_list.h)
+add_executable(manager manager.c)
 target_link_libraries(manager rt pthread)
 
-add_executable(player player.c shared_storage.h propositions_list.h)
+add_executable(player player.c)
 target_link_libraries(player rt pthread)
-
-#add_executable(init initializer.c)
-#target_link_libraries(init rt pthread)
-
-add_executable(test test.c)
-target_link_libraries(test rt pthread)
