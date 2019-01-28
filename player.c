@@ -1,20 +1,7 @@
-#include <time.h>
-#include <unistd.h>
-#include <string.h>
+#include <assert.h>
 #include <stdio.h>
 #include <semaphore.h>
 #include <sys/types.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>        /* For mode constants */
-#include <fcntl.h>           /* For O_* constants */
-#include <assert.h>
-#include <errno.h>
-#include <limits.h>
-
-
-// BIG TODO
-// manager wypisywanie opuszczających dzieci
 
 #include "err.h"
 #include "shared_storage.h"
@@ -147,26 +134,21 @@ void initialize_game(FILE *f_out, storage *strg, int defined_by, int room_id) {
         strg->assigned_room[i] = room_id;
         bitset_remove(&strg->avl_players_by_id, i);
         multiset_rem(&strg->avl_players_by_type, strg->player_type[i]);
-//        printf("Budzę %d\n", i);
         if (sem_post(&strg->private_sem[i])) syserr("sem_post");
     }
 
     for (char type = multiset_draw(&p->players_by_type);
          type != 0; type = multiset_draw(&p->players_by_type)) {
         int player_id = find_player_of_type(strg, type);
-        assert (player_id != 0);
 
         strg->assigned_room[player_id] = room_id;
         bitset_remove(&strg->avl_players_by_id, player_id);
         multiset_rem(&strg->avl_players_by_type, strg->player_type[player_id]);
         bitset_add(&p->players_by_id, player_id);
-//        printf("Budzę %d (%c)\n", player_id, type);
         if (sem_post(&strg->private_sem[player_id])) syserr("sem_post");
     }
 
     g->awaited_players = p->players_by_id;
-    assert(bitset_subset(&g->awaited_players, &p->players_by_id) &&
-           bitset_subset(&p->players_by_id, &g->awaited_players));
 
     fprintf(f_out, "Game defined by %d is going to start: room %d, players ", defined_by, room_id);
 
@@ -174,8 +156,7 @@ void initialize_game(FILE *f_out, storage *strg, int defined_by, int room_id) {
 
 }
 
-// TODO
-bool noone_needs_me(storage *strg, int id) {
+bool noone_needs_me(storage *strg) {
     return strg->props.next[0] == 0;
 }
 
@@ -194,7 +175,7 @@ void main_loop(FILE *f_in, FILE *f_out, storage *strg, int id) {
         if (sem_wait(&strg->mutex)) syserr("sem_wait");
 
         // If I can left
-        if (added_everything && !strg->still_adding_propositions && noone_needs_me(strg, id)) {
+        if (added_everything && !strg->still_adding_propositions && noone_needs_me(strg)) {
 
             bitset_remove(&strg->avl_players_by_id, id);
             multiset_rem(&strg->avl_players_by_type, strg->player_type[id]);
@@ -208,7 +189,6 @@ void main_loop(FILE *f_in, FILE *f_out, storage *strg, int id) {
 
         // If I want to add my proposition
         if (!added_everything && strg->props.prop[id].not_initialized == false) {
-//            printf("Player %d adding a proposition\n", id);
             enum ReturnValue ret;
             while ((ret = add_proposition(f_in, f_out, strg, id)) == INVALID_PROP) {}
             if (ret == END_OF_PROPS) {
@@ -226,7 +206,6 @@ void main_loop(FILE *f_in, FILE *f_out, storage *strg, int id) {
                 if (strg->props.checked) {
                     int room_id;
                     if ((room_id = check_conditions(strg, id))) {
-//                        printf("Player %d initialize game no %d\n", id, id);
                         initialize_game(f_out, strg, id, room_id);
                     }
                 }
@@ -238,21 +217,17 @@ void main_loop(FILE *f_in, FILE *f_out, storage *strg, int id) {
             for (int i = strg->props.next[0]; i != 0; i = strg->props.next[i]) {
                 int room_id;
                 if ((room_id = check_conditions(strg, i))) {
-//                    printf("Player %d initialize game no %d\n", id, i);
                     initialize_game(f_out, strg, i, room_id);
                 }
             }
             strg->props.checked = true;
         }
 
-//        printf("Player %d idzie spać\n", id);
         if (sem_post(&strg->mutex)) syserr("sem_post");
         if (sem_wait(&strg->private_sem[id])) syserr("sem_wait");
 
         if (sem_wait(&strg->mutex)) syserr("sem_wait");
         int goal_room = strg->assigned_room[id];
-
-//        printf("Player %d: idę do pokoju %d!\n", id, goal_room);
 
         if (goal_room == -1) {
             if (sem_post(&strg->mutex)) syserr("sem_post");
@@ -261,7 +236,6 @@ void main_loop(FILE *f_in, FILE *f_out, storage *strg, int id) {
 
         // I'm entering the game
         game *g = &strg->rooms[goal_room].curr_game;
-        assert(bitset_check(&g->awaited_players, id));
         bitset_remove(&g->awaited_players, id);
         fprintf(f_out, "Entered room %d, game defined by %d, waiting for players ",
                 goal_room, g->defined_by);
@@ -275,21 +249,15 @@ void main_loop(FILE *f_in, FILE *f_out, storage *strg, int id) {
 
         g->no_players_left_to_enter--;
         if (g->no_players_left_to_enter) {
-//            printf("Player %d is in the game\n", id);
             if (sem_post(&g->wait_for_the_rest)) syserr("sem_post");
         } else {
-//            printf("Player %d is (last) in the game\n", id);
             if (sem_post(&strg->mutex)) syserr("sem_post");
         }
 
         // I'm in the game
-//        printf("Player %d is in the game\n", id);
 
         fprintf(f_out, "Left room %d\n", goal_room);
-        // I'm exiting the game
         if (sem_wait(&strg->mutex)) syserr("sem_wait");
-//        printf("Player %d exited the game in room %d\n", id, goal_room);
-
         g->no_players_left_to_exit--;
         if (!g->no_players_left_to_exit) {
             strg->rooms[goal_room].is_free = true;
@@ -302,7 +270,6 @@ void main_loop(FILE *f_in, FILE *f_out, storage *strg, int id) {
         strg->no_of_games[id]++;
 
         if (sem_post(&strg->mutex)) syserr("sem_post");
-
     }
 }
 
@@ -330,16 +297,12 @@ int main(int argc, char **argv) {
 
     strg = get_storage();
 
-    fscanf(f_in, "%c\n", &fav_room);
+    if (fscanf(f_in, "%c\n", &fav_room) == EOF) syserr("fscanf");
     strg->player_type[id] = fav_room;
     multiset_add(&strg->total_players_by_type, strg->player_type[id]);
 
-//    if (DEBUG) printf("Player %d tries to enter\n", id);
-
     if (sem_post(&strg->enter_manager)) syserr("sem_post");
     if (sem_wait(&strg->enter_player)) syserr("sem_wait");
-
-//    if (DEBUG) printf("Player %d entered\n", id);
 
     main_loop(f_in, f_out, strg, id);
 
@@ -347,6 +310,4 @@ int main(int argc, char **argv) {
     fclose(f_in);
     fclose(f_out);
     clean_memory(strg);
-
-//    if (DEBUG) printf("Player %d ded\n", id);
 }

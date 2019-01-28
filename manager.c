@@ -1,26 +1,20 @@
-#include <time.h>
-#include <unistd.h>
-#include <string.h>
 #include <stdio.h>
-#include <sys/mman.h>
+#include <string.h>
 #include <semaphore.h>
+#include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>        /* For mode constants */
-#include <fcntl.h>           /* For O_* constants */
-#include <assert.h>
+#include <unistd.h>
 
 #include "err.h"
 #include "shared_storage.h"
 
 void initialize_players(storage *strg) {
     pid_t pid;
-    char id[5];
+    char id[7];
     char *args[] = {"./player", id, NULL};
 
-    for (int i = 1; i <= strg->no_players; ++i) {
+    for (short i = 1; i <= strg->no_players; ++i) {
         pid = fork();
 
         if (pid == -1) {
@@ -34,29 +28,23 @@ void initialize_players(storage *strg) {
     }
 }
 
-void get_room_data(FILE *f_in, storage *strg) {
+void get_room_data(storage *strg) {
     char type;
     int capacity;
     for (int i = 1; i <= strg->no_rooms; ++i) {
-        fscanf(f_in, "%c %d", &type, &capacity);
+        if (scanf("%c %d", &type, &capacity) == EOF) syserr("scanf");
         room_new(strg, type, capacity, i);
         if (strg->max_capacity[TYPE_TO_INT(type)] < capacity) {
             strg->max_capacity[TYPE_TO_INT(type)] = capacity;
         }
-        fgetc(f_in); // '\n', albo EOF
+        getc(stdin); // '\n', albo EOF
     }
 }
 
-
 int main() {
 
-    FILE *f_in;
     FILE *f_out;
     storage *strg;
-
-    // open files to read/write
-    f_in = fopen("manager.in", "r");
-    if (f_in == (FILE *) -1) syserr("Error opening file");
 
     f_out = fopen("manager.out", "w");
     if (f_out == (FILE *) -1) syserr("Error opening file");
@@ -64,14 +52,12 @@ int main() {
     strg = initialize_storage();
 
     // get values of number of players and rooms
-    fscanf(f_in, "%d %d\n", &strg->no_players, &strg->no_rooms);
+    if (scanf("%d %d\n", &strg->no_players, &strg->no_rooms) == EOF) syserr("scanf");
     strg->still_adding_propositions = strg->no_players;
 
     initialize_players(strg);
 
-    get_room_data(f_in, strg);
-
-//    if (DEBUG) printf("Mgr tries to enter\n");
+    get_room_data(strg);
 
     // entering building
     for (int i = 0; i < strg->no_players; ++i) {
@@ -91,11 +77,6 @@ int main() {
     }
 
     // cleanup
-    fclose(f_in);
     fclose(f_out);
-
     free_storage(strg);
-
-//    if (DEBUG) printf("Manager ded\n");
-
 }

@@ -13,20 +13,6 @@ typedef struct multiset {
     int contents[MULTISET_SIZE];
 } multiset;
 
-void multiset_new(multiset * m) {
-    memset(m->contents, 0, sizeof(m->contents));
-}
-
-//multiset *multiset_new() {
-//    multiset *m = malloc(sizeof(multiset));
-//    memset(m->contents, 0, sizeof(m->contents));
-//    return m;
-//}
-
-void multiset_delete(multiset *m) {
-    free(m);
-}
-
 void multiset_init(multiset * m) {
     memset(m->contents, 0, sizeof(m->contents));
 }
@@ -37,14 +23,6 @@ void multiset_add(multiset *m, char c) {
 
 void multiset_rem(multiset *m, char c) {
     m->contents[c - MULTISET_FIRST]--;
-}
-
-void multiset_print(multiset *m) {
-    printf("Multiset: ");
-    for (int i = MULTISET_FIRST; i <= MULTISET_LAST; i++) {
-        printf("%c:%d ", i, m->contents[i - MULTISET_FIRST]);
-    }
-    printf("\n");
 }
 
 // m1 -= m2

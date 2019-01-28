@@ -1,18 +1,17 @@
 #ifndef ESCAPE_ROOM_SHARED_STORAGE_H
 #define ESCAPE_ROOM_SHARED_STORAGE_H
 
+#include <fcntl.h>
 #include <stdbool.h>
 #include <semaphore.h>
+#include <stdio.h>
 #include <sys/stat.h>
-#include <fcntl.h>
 #include <sys/mman.h>
 #include <unistd.h>
-#include <stdio.h>
 
 #include "err.h"
-//#include "rooms.h"
-#include "multiset.h"
 #include "bitset.h"
+#include "multiset.h"
 #include "propositions.h"
 
 #define MAX_ID          1024
@@ -20,12 +19,8 @@
 #define NO_ROOM_TYPES   ('Z' - 'A' + 1)
 #define TYPE_TO_INT(c)  ((c) - 'A')
 
-
-#define SHM_NAME                "/escape_room_shared_memory"
-#define STORAGE_SIZE            (sizeof(storage))
-
-#define DEBUG   true
-#define DEBUGDEBUG false
+#define SHM_NAME        "/escape_room_shared_memory"
+#define STORAGE_SIZE    (sizeof(storage))
 
 typedef struct game {
     // room id is defined by index in a table
@@ -106,7 +101,6 @@ void room_new(storage * strg, char type, int capacity, int id) {
     if (sem_init(&strg->rooms[id].curr_game.wait_for_the_rest, 1, 0)) syserr("sem_init");
 }
 
-
 storage *get_storage() {
     storage *strg;
     int fd_memory;
@@ -120,7 +114,7 @@ storage *get_storage() {
     return strg;
 }
 
-// Invoked by manager
+// Invoked by manager at the very beginning.
 storage *initialize_storage() {
     storage *strg;
     int fd_memory;
@@ -128,7 +122,7 @@ storage *initialize_storage() {
     fd_memory = shm_open(SHM_NAME, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
     if (fd_memory == -1) syserr("Open shared memory");
 
-    ftruncate(fd_memory, STORAGE_SIZE);
+    if (ftruncate(fd_memory, STORAGE_SIZE)) syserr("ftruncate");
     if (fd_memory == -1) syserr("Truncate memory");
 
     strg = (storage *) mmap(NULL, STORAGE_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd_memory, 0);
@@ -143,8 +137,8 @@ storage *initialize_storage() {
         if (sem_init(&strg->private_sem[i], 1, 0)) syserr("sem_init");
     }
 
-    multiset_new(&strg->total_players_by_type);
-    multiset_new(&strg->avl_players_by_type);
+    multiset_init(&strg->total_players_by_type);
+    multiset_init(&strg->avl_players_by_type);
     bitset_new(&strg->avl_players_by_id);
 
     strg->fd_memory = fd_memory;
@@ -152,13 +146,13 @@ storage *initialize_storage() {
     return strg;
 }
 
-// invoked by parent process after all child processes acquired and mmaped shared memory
+// Invoked by parent process after all child processes acquired and mmaped shared memory.
 void unlink_shm(storage * strg) {
     close(strg->fd_memory);
     shm_unlink(SHM_NAME);
 }
 
-// invoked by parent process at the end of a program
+// Invoked by parent process at the end of a program.
 void free_storage(storage *strg) {
 
     if (sem_destroy(&strg->mutex)) syserr("sem_destroy");
@@ -171,7 +165,7 @@ void free_storage(storage *strg) {
     munmap(strg, STORAGE_SIZE);
 }
 
-// invoked by child processes
+// Invoked by child processes.
 void clean_memory(storage * strg) {
     munmap(strg, STORAGE_SIZE);
 }
