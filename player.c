@@ -66,11 +66,17 @@ enum ReturnValue add_proposition(FILE *f_in, FILE *f_out, storage *strg, int id)
         return END_OF_PROPS;
     };
 
+    // usuń '/n' z bufora
+    if (!feof(f_in)) {
+        buffer[strlen(buffer) - 1] = '\0';
+    }
+
+
     // get desired room info
     room_type = buffer[0];
     i += 2;
 
-    while (buffer[i] != '\0' && (buffer[i] != ' ' || buffer[i+1] != '\0')) {
+    while (buffer[i] != '\0') {
         no_players++;
 
         if (buffer[i] >= 'A') {
@@ -78,7 +84,7 @@ enum ReturnValue add_proposition(FILE *f_in, FILE *f_out, storage *strg, int id)
             i += 2;
         } else {
             int res = 0;
-            while (buffer[i] > '0' && buffer[i] < '9') {
+            while (buffer[i] >= '0' && buffer[i] <= '9') {
                 res *= 10;
                 res += (buffer[i] - '0');
                 i++;
@@ -183,7 +189,7 @@ void main_loop(FILE *f_in, FILE *f_out, storage *strg, int id) {
             strg->leaving_queue[strg->no_players_left++] = id;
 
             if (sem_post(&strg->mutex)) syserr("sem_post");
-            fprintf(f_out, "Player %d left after %d game(s).\n", id, strg->no_of_games[id]);
+//            fprintf(f_out, "Player %d left after %d game(s).\n", id, strg->no_of_games[id]);
             return;
         }
 
